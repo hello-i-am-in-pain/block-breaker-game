@@ -12,7 +12,7 @@ class Button:
         self.rect = pygame.Rect(x, y, width, height)
         self.text = text
         self.font = pygame.font.SysFont("arial", 36)
-
+    
     def draw(self, screen):
         mouse = pygame.mouse.get_pos()
 
@@ -73,6 +73,27 @@ class Menu:
             button_width,
             button_height,
             "Quit"
+        )
+
+        self.easy_button = Button(
+            x, 260,
+            button_width,
+            button_height,
+            "Easy"
+        )
+
+        self.medium_button = Button(
+            x, 355,
+            button_width,
+            button_height,
+            "Medium"
+        )
+
+        self.hard_button = Button(
+            x, 450,
+            button_width,
+            button_height,
+            "Hard"
         )
 
 #Event handling for the buttons
