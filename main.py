@@ -1,11 +1,11 @@
 import pygame
-from menu import WHITE, Menu
+from menu import Menu
 
 pygame.init()
 
 #Window settings - subject to change
-WIDTH = 1280
-HEIGHT = 720
+WIDTH = 1600
+HEIGHT = 900
 FPS = 60
 game_state = "menu"
 
