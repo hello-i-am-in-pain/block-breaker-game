@@ -1,11 +1,12 @@
 import pygame
 
-#Button code
 BACKGROUND = (30, 30, 40)
 WHITE = (255, 255, 255)
 
 BUTTON_COLOR = (70, 130, 180)
 BUTTON_HOVER = (100, 160, 220)
+
+
 
 class Button:
     def __init__(self, x, y, width, height, text):
