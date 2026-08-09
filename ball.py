@@ -1,7 +1,5 @@
 import pygame
 
-from main import game_state
-
 
 class Ball:
     def __init__(self, x, y, radius):
@@ -32,7 +30,7 @@ class Ball:
         direction = direction.normalize()
 
         self.velocity = direction * self.speed
-        
+
     def update(self, dt):
         if not self.launched:
             return
