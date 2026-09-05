@@ -33,11 +33,11 @@ class Brick:
 
         self.destroyed = False
 
-    def hit(self):
+    def hit(self, points=10):
         global total
         self.destroyed = True
         total -= 1
-        return 10
+        return points
 
 
     def draw(self, screen):

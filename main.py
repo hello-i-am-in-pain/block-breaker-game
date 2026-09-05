@@ -2,6 +2,7 @@ import pygame
 
 from menu import Menu
 from game import Game
+from death_screen import draw_death_screen
 
 pygame.init()
 
@@ -17,6 +18,9 @@ clock = pygame.time.Clock()
 menu = Menu(WIDTH, HEIGHT)
 game = None
 game_state = "menu"
+difficulty = "normal"
+death_score = 0
+death_high_score = 0
 
 running = True
 
@@ -30,10 +34,24 @@ while running:
 
         if game_state == "menu":
             if menu.start_button.is_clicked(event):
-                game = Game(WIDTH, HEIGHT)
-                game_state = "playing"
+                game_state = "difficulty"
             elif menu.quit_button.is_clicked(event):
                 running = False
+        elif game_state == "difficulty":
+            if menu.easy_button.is_clicked(event):
+                difficulty = "easy"
+                game = Game(WIDTH, HEIGHT, difficulty)
+                game_state = "playing"
+            elif menu.medium_button.is_clicked(event):
+                difficulty = "normal"
+                game = Game(WIDTH, HEIGHT, difficulty)
+                game_state = "playing"
+            elif menu.hard_button.is_clicked(event):
+                difficulty = "hard"
+                game = Game(WIDTH, HEIGHT, difficulty)
+                game_state = "playing"
+            elif menu.back_button.is_clicked(event):
+                game_state = "menu"
         elif game_state == "playing":
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
@@ -52,20 +70,38 @@ while running:
             ):
                 lives -= 1
                 if lives <= 0:
+                    death_score = game.current_score
+                    death_high_score = game.high_score
                     game = None
-                    game_state = "menu"
+                    game_state = "death_screen"
                 else:
                     game.reset_ball()
+        elif game_state == "death_screen":
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    lives = 3
+                    game = Game(WIDTH, HEIGHT, difficulty)
+                    game_state = "playing"
+                elif event.key == pygame.K_q:
+                    game = None
+                    game_state = "menu"
 
     if game_state == "menu":
         screen.fill((30, 30, 40))
         menu.draw(screen)
+    elif game_state == "difficulty":
+        menu.draw_difficulty(screen)
     elif game_state == "playing" and game is not None:
         if not game.update(dt):
+            death_score = game.current_score
+            death_high_score = game.high_score
             game = None
-            game_state = "menu"
+            game_state = "death_screen"
         else:
             game.draw(screen)
+    elif game_state == "death_screen":
+        screen.fill((30, 30, 40))
+        draw_death_screen(screen, WIDTH, HEIGHT, death_score, death_high_score)
 
     pygame.display.flip()
 

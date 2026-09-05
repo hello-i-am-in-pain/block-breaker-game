@@ -20,11 +20,6 @@ class Ball:
             return
 
         self.launched = True
-
-        # Initial direction.
-        #
-        # The ball starts travelling upward,
-        # with a slight horizontal component.
         direction = pygame.Vector2(0.35, -1)
 
         direction = direction.normalize()

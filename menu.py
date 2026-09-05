@@ -87,7 +87,7 @@ class Menu:
             x, 355,
             button_width,
             button_height,
-            "Medium"
+            "Normal"
         )
 
         self.hard_button = Button(
@@ -95,6 +95,13 @@ class Menu:
             button_width,
             button_height,
             "Hard"
+        )
+
+        self.back_button = Button(
+            x, 545,
+            button_width,
+            button_height,
+            "Back"
         )
 
 #Event handling for the buttons
@@ -126,3 +133,20 @@ class Menu:
         self.settings_button.draw(screen)
         self.multiplayer_button.draw(screen)
         self.quit_button.draw(screen)
+
+    def draw_difficulty(self, screen):
+        screen.fill(BACKGROUND)
+
+        title = self.title_font.render(
+            "Select Difficulty",
+            True,
+            WHITE
+        )
+
+        title_rect = title.get_rect(center=(self.width // 2, 120))
+        screen.blit(title, title_rect)
+
+        self.easy_button.draw(screen)
+        self.medium_button.draw(screen)
+        self.hard_button.draw(screen)
+        self.back_button.draw(screen)

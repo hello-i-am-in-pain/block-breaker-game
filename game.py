@@ -8,25 +8,39 @@ BACKGROUND = (30, 30, 40)
 
 
 class Game:
-    def __init__(self, width, height):
+    def __init__(self, width, height, difficulty="normal"):
         self.width = width
         self.height = height
+        self.difficulty = difficulty
+
+        difficulty_settings = {
+            "easy": {"paddle_width": 260, "ball_speed": 400.0},
+            "normal": {"paddle_width": 200, "ball_speed": 500.0},
+            "hard": {"paddle_width": 150, "ball_speed": 700.0},
+        }
+        settings = difficulty_settings[difficulty]
+        self.points_per_brick = {
+            "easy": 10,
+            "normal": 30,
+            "hard": 50,
+        }[difficulty]
 
         self.paddle = Paddle(
-            x=width // 2 - 100,
+            x=width // 2 - settings["paddle_width"] // 2,
             y=height - 100,
-            width=200,
+            width=settings["paddle_width"],
             height=25,
             screen_width=width,
         )
 
         self.ball = Ball(x=width // 2, y=height - 130, radius=10)
+        self.ball.speed = settings["ball_speed"]
 
         self.brick_wall = BrickWall(
             screen_width=width,
             start_y=100,
             rows=5,
-            columns=10,
+            columns=8,
         )
 
         self.high_score = load_high_score()
@@ -107,7 +121,7 @@ class Game:
 
         for brick in self.brick_wall.bricks:
             if not brick.destroyed and ball_rect.colliderect(brick.rect):
-                self.current_score += brick.hit()
+                self.current_score += brick.hit(self.points_per_brick)
                 self.ball.velocity.y *= -1
                 break
 
