@@ -6,14 +6,16 @@ from death_screen import draw_death_screen
 
 pygame.init()
 
-WIDTH = 1600
-HEIGHT = 900
+info = pygame.display.Info()
+WIDTH = info.current_w
+HEIGHT = info.current_h
 FPS = 60
 lives = 3
 
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
 pygame.display.set_caption("Block Breaker Game")
 clock = pygame.time.Clock()
+
 
 menu = Menu(WIDTH, HEIGHT)
 game = None

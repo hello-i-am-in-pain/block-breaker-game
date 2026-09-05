@@ -59,8 +59,8 @@ class Game:
         self.brick_wall.reset(
             screen_width=self.width,
             start_y=100,
-            rows=5,
-            columns=10,
+            rows=self.brick_wall.rows,
+            columns=self.brick_wall.columns,
         )
 
     def lose_life(self):
