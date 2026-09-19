@@ -7,7 +7,7 @@ import pygame
 
 SCORE_FILE = "highscore.json"
 
-total = 40
+MAX_LIVES = 5
 
 
 def save_high_score(score):
@@ -36,9 +36,7 @@ class Brick:
         self.powerup_type = powerup_type
 
     def hit(self, points=10):
-        global total
         self.destroyed = True
-        total -= 1
         return points
 
 
@@ -51,6 +49,8 @@ class Brick:
             color = (220, 170, 60)
         elif self.powerup_type == "paddle":
             color = (80, 190, 110)
+        elif self.powerup_type == "heart":
+            color = (230, 40, 90)
 
         pygame.draw.rect(screen, color, self.rect, border_radius=5)
 
@@ -69,17 +69,17 @@ class BrickWall:
         screen_width,
         start_y,
         rows,
-        columns
+        columns,
+        include_heart=False
     ):
         self.screen_width = screen_width
         self.start_y = start_y
         self.rows = rows
         self.columns = columns
         self.bricks = []
-        self.reset(screen_width, start_y, rows, columns)
+        self.reset(screen_width, start_y, rows, columns, include_heart=include_heart)
 
-    def reset(self, screen_width=None, start_y=None, rows=None, columns=None):
-        global total
+    def reset(self, screen_width=None, start_y=None, rows=None, columns=None, include_heart=False):
         if screen_width is not None:
             self.screen_width = screen_width
         if start_y is not None:
@@ -90,12 +90,21 @@ class BrickWall:
             self.columns = columns
 
         self.bricks = []
-        total = self.rows * self.columns
+        self.total = self.rows * self.columns
 
         powerup_positions = set(random.sample(
-            range(total),
-            min(5, total)
+            range(self.total),
+            min(5, self.total)
         ))
+
+        # The heart is not part of the regular powerup pool above - it's
+        # placed in exactly one brick, and only on rounds Game decides
+        # should have one (see difficulty-based intervals in game.py).
+        heart_index = None
+        if include_heart:
+            available = list(set(range(self.total)) - powerup_positions)
+            if available:
+                heart_index = random.choice(available)
 
         gap = 10
         margin = 80
@@ -115,7 +124,9 @@ class BrickWall:
 
                 brick_index = row * self.columns + column
                 powerup_type = None
-                if brick_index in powerup_positions:
+                if brick_index == heart_index:
+                    powerup_type = "heart"
+                elif brick_index in powerup_positions:
                     powerup_type = random.choice(("extra_ball", "paddle"))
 
                 brick = Brick(

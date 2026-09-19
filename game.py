@@ -2,7 +2,8 @@ import pygame
 
 from paddle import Paddle
 from ball import Ball
-from brick import BrickWall, load_high_score, save_high_score
+from brick import BrickWall, MAX_LIVES, load_high_score, save_high_score
+from heart import FallingHeart, draw_heart
 
 BACKGROUND = (30, 30, 40)
 
@@ -25,6 +26,16 @@ class Game:
             "hard": 50,
         }[difficulty]
 
+        # How many full wall resets pass between heart-powerup spawns.
+        # Lower difficulties get one more often since everything else
+        # about the round is also easier to manage alongside chasing it.
+        self.heart_interval = {
+            "easy": 2,
+            "normal": 3,
+            "hard": 4,
+        }[difficulty]
+        self.round_number = 1
+
         self.paddle = Paddle(
             x=width // 2 - settings["paddle_width"] // 2,
             y=height - 100,
@@ -44,12 +55,17 @@ class Game:
             start_y=100,
             rows=5,
             columns=8,
+            include_heart=self._should_spawn_heart(),
         )
 
         self.high_score = load_high_score()
         self.current_score = 0
         self.lives = 3
         self.game_over = False
+        self.falling_hearts = []
+
+    def _should_spawn_heart(self):
+        return self.round_number % self.heart_interval == 0
 
     def reset_ball(self):
         self.balls = [self._new_ball()]
@@ -73,16 +89,21 @@ class Game:
 
     def reset_round(self):
         self.reset_ball()
+        self.round_number += 1
         self.brick_wall.reset(
             screen_width=self.width,
             start_y=100,
             rows=self.brick_wall.rows,
             columns=self.brick_wall.columns,
+            include_heart=self._should_spawn_heart(),
         )
 
     def lose_life(self):
         self.lives -= 1
         self._clear_powerups()
+        # A heart caught mid-fall doesn't carry over into the next life -
+        # losing the ball while it's in play costs you the attempt.
+        self.falling_hearts = []
         self.reset_ball()
         if self.lives <= 0:
             self.game_over = True
@@ -109,6 +130,24 @@ class Game:
                 self.width - self.paddle.rect.width // 2
             )
 
+    def _update_falling_hearts(self, dt):
+        for heart in self.falling_hearts:
+            heart.update(dt, self.width, self.height)
+
+            if (
+                heart.can_be_caught
+                and heart.velocity.y > 0
+                and heart.get_rect().colliderect(self.paddle.rect)
+            ):
+                heart.bounce_off_paddle(self.paddle.rect)
+                if heart.collected:
+                    self.lives = min(self.lives + 1, MAX_LIVES)
+
+        self.falling_hearts = [
+            heart for heart in self.falling_hearts
+            if not (heart.collected or heart.missed)
+        ]
+
     def update(self, dt):
         if self.game_over:
             return False
@@ -119,6 +158,7 @@ class Game:
 
         self.paddle.update(dt)
         self._update_powerups(dt)
+        self._update_falling_hearts(dt)
 
         if not self.ball.launched:
             self.reset_ball()
@@ -166,10 +206,10 @@ class Game:
             if not brick.destroyed and ball_rect.colliderect(brick.rect):
                 self.current_score += brick.hit(self.points_per_brick)
                 ball.velocity.y *= -1
-                self._apply_powerup(brick.powerup_type, ball)
+                self._apply_powerup(brick.powerup_type, ball, brick)
                 break
 
-    def _apply_powerup(self, powerup_type, source_ball):
+    def _apply_powerup(self, powerup_type, source_ball, brick=None):
         if powerup_type == "paddle":
             self.paddle.rect.width = self.base_paddle_width + 30
             self.paddle.rect.width = min(self.paddle.rect.width, self.width)
@@ -181,6 +221,17 @@ class Game:
         elif powerup_type == "extra_ball":
             velocity = source_ball.velocity.rotate(25)
             self.balls.append(self._new_ball(source_ball.position, velocity))
+        elif powerup_type == "heart" and brick is not None:
+            # Breaking the brick doesn't grant the life outright - it just
+            # releases the heart, which now has to be bounced off the
+            # paddle a few times before it turns into an actual life.
+            self.falling_hearts.append(
+                FallingHeart(
+                    brick.rect.centerx,
+                    brick.rect.centery,
+                    speed=source_ball.speed * 1.3,
+                )
+            )
 
     def draw(self, screen):
         screen.fill(BACKGROUND)
@@ -188,11 +239,18 @@ class Game:
         self.paddle.draw(screen)
         for ball in self.balls:
             ball.draw(screen)
+        for heart in self.falling_hearts:
+            heart.draw(screen)
 
         font = pygame.font.Font(None, 32)
         score_text = font.render(f"Score: {self.current_score}", True, (255, 255, 255))
         high_score_text = font.render(f"High Score: {self.high_score}", True, (255, 255, 255))
-        lives_text = font.render(f"Lives: {self.lives}", True, (255, 255, 255))
         screen.blit(score_text, (35, 25))
         screen.blit(high_score_text, (35, 50))
-        screen.blit(lives_text, (35, 75))
+
+        heart_size = 22
+        heart_spacing = 30
+        heart_center_y = 88
+        for i in range(self.lives):
+            heart_center_x = 35 + heart_size // 2 + i * heart_spacing
+            draw_heart(screen, (heart_center_x, heart_center_y), heart_size, (255, 255, 255))
