@@ -32,9 +32,12 @@ class Game:
             height=25,
             screen_width=width,
         )
+        self.base_paddle_width = settings["paddle_width"]
+        self.paddle_powerup_time = 0.0
 
         self.ball = Ball(x=width // 2, y=height - 130, radius=10)
         self.ball.speed = settings["ball_speed"]
+        self.balls = [self.ball]
 
         self.brick_wall = BrickWall(
             screen_width=width,
@@ -49,10 +52,24 @@ class Game:
         self.game_over = False
 
     def reset_ball(self):
-        self.ball.launched = False
-        self.ball.velocity = pygame.Vector2(0, 0)
-        self.ball.position.x = self.paddle.rect.centerx
-        self.ball.position.y = self.paddle.rect.top - self.ball.radius - 2
+        self.balls = [self._new_ball()]
+        self.ball = self.balls[0]
+
+    def _new_ball(self, position=None, velocity=None):
+        ball = Ball(
+            x=self.paddle.rect.centerx if position is None else position.x,
+            y=self.paddle.rect.top - 12 if position is None else position.y,
+            radius=10,
+        )
+        ball.speed = self.ball.speed
+        if position is not None:
+            ball.launched = True
+            ball.velocity = velocity or pygame.Vector2(0, -ball.speed)
+        return ball
+
+    def launch_balls(self):
+        for ball in self.balls:
+            ball.launch()
 
     def reset_round(self):
         self.reset_ball()
@@ -65,11 +82,32 @@ class Game:
 
     def lose_life(self):
         self.lives -= 1
+        self._clear_powerups()
         self.reset_ball()
         if self.lives <= 0:
             self.game_over = True
             return False
         return True
+
+    def _clear_powerups(self):
+        self.paddle_powerup_time = 0.0
+        self.paddle.rect.width = self.base_paddle_width
+        self.paddle.rect.centerx = min(
+            max(self.paddle.rect.centerx, self.paddle.rect.width // 2),
+            self.width - self.paddle.rect.width // 2
+        )
+
+    def _update_powerups(self, dt):
+        if self.paddle_powerup_time <= 0:
+            return
+
+        self.paddle_powerup_time = max(0, self.paddle_powerup_time - dt)
+        if self.paddle_powerup_time == 0:
+            self.paddle.rect.width = self.base_paddle_width
+            self.paddle.rect.centerx = min(
+                max(self.paddle.rect.centerx, self.paddle.rect.width // 2),
+                self.width - self.paddle.rect.width // 2
+            )
 
     def update(self, dt):
         if self.game_over:
@@ -80,14 +118,19 @@ class Game:
             return True
 
         self.paddle.update(dt)
+        self._update_powerups(dt)
 
         if not self.ball.launched:
             self.reset_ball()
 
-        self.ball.update(dt)
-        self._handle_collisions()
+        for ball in self.balls[:]:
+            ball.update(dt)
+            self._handle_collisions(ball)
 
-        if self.ball.position.y - self.ball.radius > self.height:
+            if ball.position.y - ball.radius > self.height:
+                self.balls.remove(ball)
+
+        if not self.balls:
             return self.lose_life()
 
         if self.current_score > self.high_score:
@@ -96,40 +139,55 @@ class Game:
 
         return True
 
-    def _handle_collisions(self):
-        ball_rect = self.ball.get_rect()
+    def _handle_collisions(self, ball):
+        ball_rect = ball.get_rect()
 
-        if self.ball.position.x - self.ball.radius <= 0:
-            self.ball.position.x = self.ball.radius
-            self.ball.velocity.x *= -1
+        if ball.position.x - ball.radius <= 0:
+            ball.position.x = ball.radius
+            ball.velocity.x *= -1
 
-        if self.ball.position.x + self.ball.radius >= self.width:
-            self.ball.position.x = self.width - self.ball.radius
-            self.ball.velocity.x *= -1
+        if ball.position.x + ball.radius >= self.width:
+            ball.position.x = self.width - ball.radius
+            ball.velocity.x *= -1
 
-        if self.ball.position.y - self.ball.radius <= 0:
-            self.ball.position.y = self.ball.radius
-            self.ball.velocity.y *= -1
+        if ball.position.y - ball.radius <= 0:
+            ball.position.y = ball.radius
+            ball.velocity.y *= -1
 
-        if ball_rect.colliderect(self.paddle.rect) and self.ball.velocity.y > 0:
-            self.ball.position.y = self.paddle.rect.top - self.ball.radius - 1
-            self.ball.velocity.y *= -1
-            offset = (self.ball.position.x - self.paddle.rect.centerx) / (self.paddle.rect.width / 2)
-            self.ball.velocity.x += offset * 200
-            if self.ball.velocity.length_squared() > 0:
-                self.ball.velocity = self.ball.velocity.normalize() * self.ball.speed
+        if ball_rect.colliderect(self.paddle.rect) and ball.velocity.y > 0:
+            ball.position.y = self.paddle.rect.top - ball.radius - 1
+            ball.velocity.y *= -1
+            offset = (ball.position.x - self.paddle.rect.centerx) / (self.paddle.rect.width / 2)
+            ball.velocity.x += offset * 200
+            if ball.velocity.length_squared() > 0:
+                ball.velocity = ball.velocity.normalize() * ball.speed
 
         for brick in self.brick_wall.bricks:
             if not brick.destroyed and ball_rect.colliderect(brick.rect):
                 self.current_score += brick.hit(self.points_per_brick)
-                self.ball.velocity.y *= -1
+                ball.velocity.y *= -1
+                self._apply_powerup(brick.powerup_type, ball)
                 break
+
+    def _apply_powerup(self, powerup_type, source_ball):
+        if powerup_type == "paddle":
+            self.paddle.rect.width = self.base_paddle_width + 30
+            self.paddle.rect.width = min(self.paddle.rect.width, self.width)
+            self.paddle_powerup_time = 30.0
+            self.paddle.rect.centerx = min(
+                max(self.paddle.rect.centerx, self.paddle.rect.width // 2),
+                self.width - self.paddle.rect.width // 2
+            )
+        elif powerup_type == "extra_ball":
+            velocity = source_ball.velocity.rotate(25)
+            self.balls.append(self._new_ball(source_ball.position, velocity))
 
     def draw(self, screen):
         screen.fill(BACKGROUND)
         self.brick_wall.draw(screen)
         self.paddle.draw(screen)
-        self.ball.draw(screen)
+        for ball in self.balls:
+            ball.draw(screen)
 
         font = pygame.font.Font(None, 32)
         score_text = font.render(f"Score: {self.current_score}", True, (255, 255, 255))

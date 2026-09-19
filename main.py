@@ -60,24 +60,10 @@ while running:
                     game = None
                     game_state = "menu"
                 elif event.key == pygame.K_SPACE and game is not None:
-                    game.ball.launch()
+                    game.launch_balls()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1 and game is not None:
-                    game.ball.launch()
-            if game is not None and (
-                game.ball.position.x - game.ball.radius < 0 or         # Left Edge
-                game.ball.position.x + game.ball.radius > WIDTH or     # Right Edge
-                game.ball.position.y - game.ball.radius < 0 or         # Top Edge
-                game.ball.position.y + game.ball.radius > HEIGHT       # Bottom Edge
-            ):
-                lives -= 1
-                if lives <= 0:
-                    death_score = game.current_score
-                    death_high_score = game.high_score
-                    game = None
-                    game_state = "death_screen"
-                else:
-                    game.reset_ball()
+                    game.launch_balls()
         elif game_state == "death_screen":
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:

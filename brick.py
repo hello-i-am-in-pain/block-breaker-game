@@ -1,5 +1,6 @@
 import json
 import os
+import random
 
 import pygame
 
@@ -23,7 +24,7 @@ def load_high_score():
 
 
 class Brick:
-    def __init__(self, x, y, width, height):
+    def __init__(self, x, y, width, height, powerup_type=None):
         self.rect = pygame.Rect(
             x,
             y,
@@ -32,6 +33,7 @@ class Brick:
         )
 
         self.destroyed = False
+        self.powerup_type = powerup_type
 
     def hit(self, points=10):
         global total
@@ -44,12 +46,13 @@ class Brick:
         if self.destroyed:
             return
 
-        pygame.draw.rect(
-            screen,
-            (70, 130, 180),
-            self.rect,
-            border_radius=5
-        )
+        color = (70, 130, 180)
+        if self.powerup_type == "extra_ball":
+            color = (220, 170, 60)
+        elif self.powerup_type == "paddle":
+            color = (80, 190, 110)
+
+        pygame.draw.rect(screen, color, self.rect, border_radius=5)
 
         pygame.draw.rect(
             screen,
@@ -89,6 +92,11 @@ class BrickWall:
         self.bricks = []
         total = self.rows * self.columns
 
+        powerup_positions = set(random.sample(
+            range(total),
+            min(5, total)
+        ))
+
         gap = 10
         margin = 80
 
@@ -105,11 +113,17 @@ class BrickWall:
                 x = margin + column * (brick_width + gap)
                 y = self.start_y + row * (brick_height + gap)
 
+                brick_index = row * self.columns + column
+                powerup_type = None
+                if brick_index in powerup_positions:
+                    powerup_type = random.choice(("extra_ball", "paddle"))
+
                 brick = Brick(
                     int(x),
                     int(y),
                     int(brick_width),
-                    brick_height
+                    brick_height,
+                    powerup_type
                 )
 
                 self.bricks.append(brick)
