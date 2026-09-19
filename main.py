@@ -1,8 +1,13 @@
 import pygame
 
-from menu import Menu
-from game import Game
-from death_screen import draw_death_screen
+try:
+    from menu import Menu
+    from game import Game
+    from classes.death_screen import draw_death_screen
+except ImportError:  # pragma: no cover - package-style fallback
+    from .menu import Menu
+    from .game import Game
+    from .classes.death_screen import draw_death_screen
 
 pygame.init()
 

@@ -5,12 +5,15 @@ import random
 import pygame
 
 
-SCORE_FILE = "highscore.json"
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SCORE_DIR = os.path.join(PROJECT_ROOT, "score")
+SCORE_FILE = os.path.join(SCORE_DIR, "highscore.json")
 
 MAX_LIVES = 5
 
 
 def save_high_score(score):
+    os.makedirs(SCORE_DIR, exist_ok=True)
     with open(SCORE_FILE, "w", encoding="utf-8") as file:
         json.dump({"highscore": score}, file)
 

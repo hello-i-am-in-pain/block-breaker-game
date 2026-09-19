@@ -1,9 +1,15 @@
 import pygame
 
-from paddle import Paddle
-from ball import Ball
-from brick import BrickWall, MAX_LIVES, load_high_score, save_high_score
-from heart import FallingHeart, draw_heart
+try:
+    from classes.paddle import Paddle
+    from classes.ball import Ball
+    from classes.brick import BrickWall, MAX_LIVES, load_high_score, save_high_score
+    from classes.heart import FallingHeart, draw_heart
+except ImportError:  # pragma: no cover - package-style fallback
+    from .classes.paddle import Paddle
+    from .classes.ball import Ball
+    from .classes.brick import BrickWall, MAX_LIVES, load_high_score, save_high_score
+    from .classes.heart import FallingHeart, draw_heart
 
 BACKGROUND = (30, 30, 40)
 
