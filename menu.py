@@ -52,7 +52,7 @@ class Menu:
             x, 260,
             button_width,
             button_height,
-            "Start"
+            "Single Player"
         )
 
         self.settings_button = Button(

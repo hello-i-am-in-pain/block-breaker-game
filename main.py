@@ -1,13 +1,8 @@
 import pygame
 
-try:
-    from menu import Menu
-    from game import Game
-    from classes.death_screen import draw_death_screen
-except ImportError:  # pragma: no cover - package-style fallback
-    from .menu import Menu
-    from .game import Game
-    from .classes.death_screen import draw_death_screen
+from menu import Menu
+from game import Game
+from classes.death_screen import draw_death_screen
 
 pygame.init()
 
@@ -25,6 +20,7 @@ clock = pygame.time.Clock()
 menu = Menu(WIDTH, HEIGHT)
 game = None
 game_state = "menu"
+mode = "solo"
 difficulty = "normal"
 death_score = 0
 death_high_score = 0
@@ -41,23 +37,36 @@ while running:
 
         if game_state == "menu":
             if menu.start_button.is_clicked(event):
+                mode = "solo"
+                game_state = "difficulty"
+            elif menu.multiplayer_button.is_clicked(event):
+                mode = "versus"
                 game_state = "difficulty"
             elif menu.quit_button.is_clicked(event):
                 running = False
         elif game_state == "difficulty":
+            selected_difficulty = None
             if menu.easy_button.is_clicked(event):
-                difficulty = "easy"
-                game = Game(WIDTH, HEIGHT, difficulty)
-                game_state = "playing"
+                selected_difficulty = "easy"
             elif menu.medium_button.is_clicked(event):
-                difficulty = "normal"
-                game = Game(WIDTH, HEIGHT, difficulty)
-                game_state = "playing"
+                selected_difficulty = "normal"
             elif menu.hard_button.is_clicked(event):
-                difficulty = "hard"
-                game = Game(WIDTH, HEIGHT, difficulty)
-                game_state = "playing"
+                selected_difficulty = "hard"
             elif menu.back_button.is_clicked(event):
+                game_state = "menu"
+
+            if selected_difficulty is not None:
+                difficulty = selected_difficulty
+                if mode == "solo":
+                    game = Game(WIDTH, HEIGHT, difficulty)
+                    game_state = "playing"
+                else:
+                    # Host/Join screen lands here next - for now this just
+                    # confirms the mode + difficulty selection made it through.
+                    game_state = "versus_setup"
+        elif game_state == "versus_setup":
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                mode = "solo"
                 game_state = "menu"
         elif game_state == "playing":
             if event.type == pygame.KEYDOWN:
@@ -84,6 +93,18 @@ while running:
         menu.draw(screen)
     elif game_state == "difficulty":
         menu.draw_difficulty(screen)
+    elif game_state == "versus_setup":
+        screen.fill((30, 30, 40))
+        font = pygame.font.Font(None, 44)
+        lines = [
+            f"Multiplayer mode selected - difficulty: {difficulty}",
+            "Host/Join screen goes here next.",
+            "(Press Esc to go back)",
+        ]
+        for i, line in enumerate(lines):
+            text = font.render(line, True, (255, 255, 255))
+            text_rect = text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 40 + i * 50))
+            screen.blit(text, text_rect)
     elif game_state == "playing" and game is not None:
         if not game.update(dt):
             death_score = game.current_score

@@ -1,15 +1,9 @@
 import pygame
 
-try:
-    from classes.paddle import Paddle
-    from classes.ball import Ball
-    from classes.brick import BrickWall, MAX_LIVES, load_high_score, save_high_score
-    from classes.heart import FallingHeart, draw_heart
-except ImportError:  # pragma: no cover - package-style fallback
-    from .classes.paddle import Paddle
-    from .classes.ball import Ball
-    from .classes.brick import BrickWall, MAX_LIVES, load_high_score, save_high_score
-    from .classes.heart import FallingHeart, draw_heart
+from classes.paddle import Paddle
+from classes.ball import Ball
+from classes.brick import BrickWall, MAX_LIVES, load_high_score, save_high_score
+from classes.heart import FallingHeart, draw_heart
 
 BACKGROUND = (30, 30, 40)
 
@@ -238,6 +232,31 @@ class Game:
                     speed=source_ball.speed * 1.3,
                 )
             )
+
+    def get_network_snapshot(self):
+        """Package this machine's local game state into a plain dict of
+        JSON-safe values, to be sent to the other player over the
+        network. The other side never simulates this - it just draws
+        whatever arrives here, so this needs to carry everything visible
+        on screen: paddle, balls, which bricks are gone (and what they
+        were carrying, for correct colors), score, and lives."""
+        return {
+            "score": self.current_score,
+            "lives": self.lives,
+            "game_over": self.game_over,
+            "paddle_x": self.paddle.rect.centerx,
+            "paddle_width": self.paddle.rect.width,
+            "balls": [
+                {"x": ball.position.x, "y": ball.position.y, "radius": ball.radius}
+                for ball in self.balls
+            ],
+            "destroyed_bricks": [
+                brick.destroyed for brick in self.brick_wall.bricks
+            ],
+            "powerup_types": [
+                brick.powerup_type for brick in self.brick_wall.bricks
+            ],
+        }
 
     def draw(self, screen):
         screen.fill(BACKGROUND)
